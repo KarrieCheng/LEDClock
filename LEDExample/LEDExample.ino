@@ -90,24 +90,24 @@ void loop()
 //      digitalWrite(ledPin011, ledState);
 
 
+digitalWrite(ledPin000, HIGH);
 
 
-
-  int current_array[8] = {1,1,1,1,1,1,1,1};
-  current_array[8] = *one_blank;
+//  int current_array[8] = {1,1,1,1,1,1,1,1};
+//  current_array[8] = *one_blank;
 //Figure out how to get 2D array in C
 
-  
-  int counter = 0;
-  //changes led to current
-  for (;counter < LED_COUNT;counter++){
-    if (current_array[counter])
-      ledState = HIGH;
-    else 
-      ledState = LOW;
-    digitalWrite(leds[counter], ledState);
-    printf("Bulb Stuff: %d", current_array[counter]);
-  }
+//  
+//  int counter = 0;
+//  //changes led to current
+//  for (;counter < LED_COUNT;counter++){
+//    if (current_array[counter])
+//      ledState = HIGH;
+//    else 
+//      ledState = LOW;
+//    digitalWrite(leds[counter], ledState);
+//    printf("Bulb Stuff: %d", current_array[counter]);
+//  }
 
 
   }
