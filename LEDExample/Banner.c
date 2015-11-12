@@ -10,20 +10,58 @@ const int one_blank [8] =         {0,0,0,0,0,0,0,0};
 const int one_mid [8] =           {0,0,0,1,0,0,0,0};
 const int one_top[8] =            {1,0,0,0,0,0,0,0};
 const int two_top [8] =           {1,1,1,1,0,0,0,0};
-//const int two_bottom [8] =        {0,0,0,0,1,1,1,1}; //Unused
 const int two_exclam [8] =        {1,1,1,1,0,0,0,1};
 const int two_inv_excl [8] =      {1,0,0,0,1,1,1,1};
+const int two_colon [8] =		  {0,0,1,0,0,1,0,0}; //colon
 const int two_spread [8] =        {1,0,0,0,0,0,0,1};
 const int two_bot_spread [8] =    {0,0,0,0,1,0,0,1};
 const int two_top_spread [8] =    {1,0,0,1,0,0,0,0};
 const int three_spread [8] =      {1,0,0,1,0,0,0,1};
 const int three_spread_inv [8] =  {1,0,0,0,1,0,0,1};
 
+
+/**** HELPER FUNCTIONS ****/
+
+void draw_time(int digit, int* array [10]){
+	int* digit_map;
+	digit_map = array[digit];
+
+	int column = 0;
+	int row = 0;
+
+	for (column = 0; column < 3; column++)
+	{
+		for (row = 0; row < 8; row++)
+		{
+			(digit_map[(column*leds_per_column) + row] == 1)? printf("X") : printf(" "); 
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void draw_symbol(int* symbol_location){
+	int column = 0;
+	int row = 0;
+
+	for (column = 0; column < 3; column++)
+	{
+		for (row = 0; row < 8; row++)
+		{
+			(symbol_location[(column*leds_per_column) + row] == 1)? printf("X") : printf(" "); 
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+
+/**** MAIN FUNCTION ****/
+
 int main(){
 	int column_counter = 0;
 	int row_counter = 0;
 
-	
 
 	//int zero[3] =  {one_bar, two_spread, one_bar};
 	int* zero = 	malloc(sizeof(int) * columns * leds_per_column);
@@ -124,27 +162,42 @@ int main(){
 		}
 	}
 
+	//int one [3] =   {one_blank, one_bar, one_blank};
+	int* colon = 		malloc(sizeof(int) * columns * leds_per_column);
+	for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+		for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+			colon[row_counter + (0 * leds_per_column)] = one_blank[row_counter];
+			colon[row_counter + (1 * leds_per_column)] = two_colon[row_counter];
+			colon[row_counter + (2 * leds_per_column)] = one_blank[row_counter];
+		}
+	}
+
+
 	int* led_reps [10] = {zero, one, two, three, four, five, six, seven, eight, nine};
 
-	int* digit;
-	digit = zero;
-	int j = 0;
-	int k = 0;
+
+	int hours = 11; 
+	int minutes = 39;
 
 
-	printf("\n\n\n%s \n", "LED rep");
-	for (int i = 0; i < 10; ++i)
-	{
-		digit = led_reps[i];
-		for (j = 0; j < 3; j++){
-			for (k = 0; k < 8; k++){
-					(digit[(j*leds_per_column) + k] == 1)? printf("X") : printf(" "); 
-				}
-				printf("\n");
-		}
-		printf("\n");
-		printf("\n");
-	}
+	int hour0 = 0;
+	hour0 = hours / 10;
+	draw_time(hour0, led_reps);
+
+	int hour1 = 0;
+	hour1 = hours % 10;
+	draw_time(hour1, led_reps);
+
+	draw_symbol(colon);
+
+
+	int minute0 = 0;
+	minute0 = minutes / 10;
+	draw_time(minute0, led_reps);
+
+	int minute1 = 0;
+	minute1 = minutes % 10;
+	draw_time(minute1, led_reps);
 	
 
 	return 0;
