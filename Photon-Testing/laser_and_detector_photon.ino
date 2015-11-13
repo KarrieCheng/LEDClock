@@ -1,26 +1,19 @@
 /*
-
 Code for KY-008 Laser and Laser Detector
 by eLab Peers (C) 2014.
-
 Visit us at:
 http://www.elabpeers.com
-
 All rights reserved.
-
 Wiring:
 1.  VCC to 5V on Arduino board
 2.  GND to GND on Arduino board
 3.  S on KY-008 Laser to Pin 6 on Arduino board
 4.  OUT on Laser Dector to Pin 7 on Arduino board
-
 */
 
 /****
-
 KC: This is code from the KY-008 Laser and Laser Detector website: 
 https://www.elabpeers.com/ky-008-laser-x-laser-detector.html
-
 The following .c code will work and explains some of the rationale of the code in loop
 //  int main(){
 //  int count = 0;
@@ -33,14 +26,13 @@ The following .c code will work and explains some of the rationale of the code i
 //    cout << endl<< avg << endl;
 //  }
 //}
-
 It basically updates the average based off of new information. When the arm first
 powers on, it'll be pretty slow
-
 ****/
 
 int Laser = 6;
 int Detector = 7;
+int led = 0;
 
 
 long long count = 0;
@@ -48,9 +40,8 @@ long avg = 0;
 
 unsigned long val_counts [2] = {0,0}; //used to get the ratio of 0s to 1s
 
-int avg_sample_size = 5; //maybe make this larger?
-unsigned long previous_values [avg_sample_size]; 
-int index = 0;
+unsigned long previous_values [5]; //NL: We need to hardcode the size on Photon
+int ind = 0; //NL: We can't name this index
 
 int prev_sig = 0;
 
@@ -62,6 +53,7 @@ void setup()
   Serial.begin (9600);
   pinMode(Laser, OUTPUT);
   pinMode(Detector, INPUT);
+  pinMode(led, OUTPUT);
 }
 
 void loop()
@@ -76,11 +68,13 @@ void loop()
       //laser was not detected
       val_counts[1]++;
       Serial.print(val);
+      digitalWrite(led,LOW);
   }
   else {
       //laser was detected
       val_counts[0]++;
       Serial.print(val);
+      digitalWrite(led,HIGH);
   }
 
   
@@ -95,8 +89,8 @@ void loop()
       int i = 0;
       avg = 0;
       
-      previous_values[index] = val_counts[1]/val_counts[0];
-      index = (index + 1) % 5;
+      previous_values[ind] = val_counts[1]/val_counts[0];
+      ind = (ind + 1) % 5;
       
       for (; i < 5 ; i++){
         avg += val;
