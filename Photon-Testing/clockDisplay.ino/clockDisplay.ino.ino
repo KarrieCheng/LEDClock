@@ -1,6 +1,8 @@
-/* Group Project
+/* CSCE 462 Group Project
 Base Code from http://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
  */
+#define LPR_HISTORY  5
+#define DEGREES 64
 
 int arduino_offset = 0; //depends on the board we are using ; 2 for the Uno, 0 for the photon
 int Detector = 7;
@@ -8,20 +10,23 @@ int Detector = 7;
 const int columns = 3;
 const int leds_per_column = 7;
 
-int segments = 128;
+/* RPM GLOBAL VARIABLES*/
+int loop_index = 0;
+int lps = 5; // loops per segment
+int lpr[LPR_HISTORY]; //loops per rotation
+int lpr_index = 0;
+int lpr_average = 1;
 int segment_index = 0;
 long counter = 0; //for how many times a loop occurs in a revolution
 
+/*TIME GLOBAL VARIABLES*/
 int hours = 26; 
-int minutes = 66;
+int minutes = 37;
 
 int hour0 = hours / 10;
 int hour1 = hours % 10;
 int minute0 = minutes / 10;
 int minute1 = minutes % 10;
-
-float ms_per_segment = 0;
-//this will matter when the arm is ready.
 
 /**** NUMBER SEGMENT ENCODINGS ****/
 const int one_bar [8] =           {1,1,1,1,1,1,1};
@@ -57,8 +62,6 @@ int* led_reps [10] = {zero, one, two, three, four, five, six, seven, eight, nine
 
 
 /**** SETUP ****/
-
-
 void setup() {
     
   // set the digital pin as output:
@@ -148,8 +151,6 @@ void setup() {
 
 
 /**** DRAW FUNCTIONS ****/
-
-
 void draw_time(int digit, int* array [10], int column){
   int* digit_map;
   digit_map = array[digit];
@@ -162,7 +163,7 @@ void draw_time(int digit, int* array [10], int column){
           int pin_index = 6 - (row + arduino_offset);
           (digit_map[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
         }
-  }
+}
 
 
 void draw_symbol(int* symbol_location, int column){
@@ -170,46 +171,59 @@ void draw_symbol(int* symbol_location, int column){
   int row = 0;
   int index = 0;
   
-    for (row = 0; row < 7; row++)
-    {
-      index = (column*leds_per_column) + row;
-      int pin_index = 6 - (row + arduino_offset);
-      (symbol_location[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
-    }
+  for (row = 0; row < 7; row++)
+  {
+    index = (column*leds_per_column) + row;
+    int pin_index = 6 - (row + arduino_offset);
+    (symbol_location[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
+  }
   
 }
 
 /**** TIME FUNCTION(S) ****/
-
 void update_time(){
-Particle.syncTime();
+  Particle.syncTime();
+  
+  hours = Time.hour();
+  minutes = Time.minute();
+  
+  hours = hours % 12;
+  
+  hour0 = hours / 10;
+  hour1 = hours % 10;
+  minute0 = minutes / 10;
+  minute1 = minutes % 10;
+}
 
-hours = Time.hour();
-minutes = Time.minute();
+/**** RPM FUNCTION(S) ****/
+void update_avg(){
+    int array_counter = 0;
+    int sum = 0;
+    for (array_counter = 0; array_counter < LPR_HISTORY; array_counter++)
+        sum += lpr[array_counter];
+    lpr_average = sum/LPR_HISTORY;
+}
 
-hour0 = hours / 10;
-hour1 = hours % 10;
-minute0 = minutes / 10;
-minute1 = minutes % 10;
+void update_lps(){
+    lps = 1.5 * (lpr_average/DEGREES);
+    if (lps==0)
+        lps = 1;
 }
 
 /**** MAIN ****/
-void loop()
-
-{ 
-    
+void loop(){ 
     update_time();
-  boolean val = digitalRead(Detector);
-  if (!val) {
-    counter = 1;
-    segment_index = 1;  
-  } //this is for when we decide how fast the clock goes
-  
-  if (segment_index == 6000) //64 was arbitrarily chosen
-  {
-      segment_index = 1;  
-  }
+    boolean val = digitalRead(Detector);
+    if (!val) {
+        lpr[lpr_index] = segment_index;
+        lpr_index = (lpr_index + 1) % LPR_HISTORY;
+        
+        update_avg();
+        update_lps();
 
+        counter = 1;
+        segment_index = 1;  
+    } //this is for when we decide how fast the clock goes    
   switch (segment_index) {
             case 1:  draw_time(hour0, led_reps, 0);
                 break;
@@ -255,6 +269,8 @@ void loop()
             default: draw_symbol(blank,1);
                 break;
         }
-  segment_index++;
-  counter++;
+    loop_index = (loop_index + 1) % lps;
+    if (loop_index == 0)
+        segment_index++;
+    counter++;
 }
