@@ -12,8 +12,8 @@ int segments = 128;
 int segment_index = 0;
 long counter = 0; //for how many times a loop occurs in a revolution
 
-int hours = 11; 
-int minutes = 39;
+int hours = 26; 
+int minutes = 66;
 
 int hour0 = hours / 10;
 int hour1 = hours % 10;
@@ -23,21 +23,22 @@ int minute1 = minutes % 10;
 float ms_per_segment = 0;
 //this will matter when the arm is ready.
 
-//Number Segments
-const int one_bar [7] =           {1,1,1,1,1,1,1};
-const int one_blank [7] =         {0,0,0,0,0,0,0};
-const int one_mid [7] =           {0,0,0,1,0,0,0};
-const int one_top[7] =            {1,0,0,0,0,0,0};
-const int two_top [7] =           {1,1,1,1,0,0,0};
-const int two_exclam [7] =        {1,1,1,1,0,0,0};
-const int two_inv_excl [7] =      {1,0,0,0,1,1,1};
-const int two_colon [7] =         {0,0,1,0,1,0,0}; //colon
-const int two_spread [7] =        {1,0,0,0,0,0,0};
-const int two_bot_spread [7] =    {0,0,0,0,1,0,0};
-const int two_top_spread [7] =    {1,0,0,1,0,0,0};
-const int three_spread [7] =      {1,0,0,1,0,0,1};
-const int three_spread_inv [7] =  {1,0,0,0,1,0,0};
+/**** NUMBER SEGMENT ENCODINGS ****/
+const int one_bar [8] =           {1,1,1,1,1,1,1};
+const int one_blank [8] =         {0,0,0,0,0,0,0};
+const int one_mid [8] =           {0,0,0,1,0,0,0};
+const int one_top[8] =            {1,0,0,0,0,0,0};
+const int two_top [8] =           {1,1,1,1,0,0,0};
+const int two_exclam [8] =        {1,1,1,1,0,0,1};
+const int two_inv_excl [8] =      {1,0,0,0,1,1,1};
+const int two_colon [8] =     {0,0,1,0,0,1,0}; //colon
+const int two_spread [8] =        {1,0,0,0,0,0,1};
+const int two_bot_spread [8] =    {0,0,0,0,1,0,1};
+const int two_top_spread [8] =    {1,0,0,1,0,0,0};
+const int three_spread [8] =      {1,0,0,1,0,0,1};
+const int three_spread_inv [8] =  {1,0,0,1,0,0,1};
 
+/**** NUMBER SEGMENT ENCODINGS ****/
 int zero  [21];
 int one   [21];
 int two   [21];
@@ -54,7 +55,9 @@ int colon  [21];
 
 int* led_reps [10] = {zero, one, two, three, four, five, six, seven, eight, nine};
 
+
 /**** SETUP ****/
+
 
 void setup() {
     
@@ -67,7 +70,16 @@ void setup() {
   pinMode(5 + arduino_offset, OUTPUT);
   pinMode(6 + arduino_offset, OUTPUT);
   pinMode(Detector, INPUT);
+  
+  digitalWrite(0,HIGH);
+  digitalWrite(1,HIGH);
+  digitalWrite(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(4,HIGH);
+  digitalWrite(5,HIGH);
+  digitalWrite(6,HIGH);
 
+  Time.zone(-6);  
   
   /* BIT MAP ASSIGNMENTS */
   int row_counter = 0;
@@ -132,10 +144,12 @@ void setup() {
       colon[row_counter + (1 * leds_per_column)] = two_colon[row_counter];
       colon[row_counter + (2 * leds_per_column)] = one_blank[row_counter];
   }
-
-
-  
 }
+
+
+/**** DRAW FUNCTIONS ****/
+
+
 void draw_time(int digit, int* array [10], int column){
   int* digit_map;
   digit_map = array[digit];
@@ -145,13 +159,7 @@ void draw_time(int digit, int* array [10], int column){
   for (row = 0; row < 7; row++)
         {
           index = (column*leds_per_column) + row;
-          int pin_index = row + arduino_offset;
-          if (digit_map[index] == 1){
-            Serial.print("Pin Index \t");
-            Serial.print(index);
-            Serial.print(digit_map[index]);
-            digitalWrite(pin_index, HIGH);
-          }
+          int pin_index = 6 - (row + arduino_offset);
           (digit_map[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
         }
   }
@@ -165,26 +173,41 @@ void draw_symbol(int* symbol_location, int column){
     for (row = 0; row < 7; row++)
     {
       index = (column*leds_per_column) + row;
-      int pin_index = row + arduino_offset;
+      int pin_index = 6 - (row + arduino_offset);
       (symbol_location[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
     }
   
 }
 
+/**** TIME FUNCTION(S) ****/
+
+void update_time(){
+Particle.syncTime();
+
+hours = Time.hour();
+minutes = Time.minute();
+
+hour0 = hours / 10;
+hour1 = hours % 10;
+minute0 = minutes / 10;
+minute1 = minutes % 10;
+}
 
 /**** MAIN ****/
 void loop()
+
 { 
+    
+    update_time();
   boolean val = digitalRead(Detector);
-  if (val) {
-    Serial.print(counter);
-    counter = 0;
+  if (!val) {
+    counter = 1;
+    segment_index = 1;  
   } //this is for when we decide how fast the clock goes
   
-  if (segment_index == 640) //64 was arbitrarily chosen
+  if (segment_index == 6000) //64 was arbitrarily chosen
   {
-      ms_per_segment = segments/counter;
-      segment_index = 0;  
+      segment_index = 1;  
   }
 
   switch (segment_index) {
@@ -194,33 +217,39 @@ void loop()
                 break;
             case 3:  draw_time(hour0, led_reps, 2);
                 break;
+
+            case 4: draw_symbol(colon,0);
+                break;
                 
-            case 4:  draw_time(hour1, led_reps, 0);
+            case 5:  draw_time(hour1, led_reps, 0);
                 break;
-            case 5:  draw_time(hour1, led_reps, 1);
+            case 6:  draw_time(hour1, led_reps, 1);
                 break;
-            case 6:  draw_time(hour1, led_reps, 2);
-                break;
-
-            case 7: draw_symbol(colon,0);
-                break;
-            case 8: draw_symbol(colon,1);
-                break;
-            case 9: draw_symbol(colon,2);
+            case 7:  draw_time(hour1, led_reps, 2);
                 break;
 
-            case 10:  draw_time(minute0, led_reps, 0);
+            case 8: draw_symbol(colon,0);
                 break;
-            case 11:  draw_time(minute0, led_reps, 1);
+            case 9: draw_symbol(colon,1);
                 break;
-            case 12:  draw_time(minute0, led_reps, 2);
+            case 10: draw_symbol(colon,2);
+                break;
+
+            case 11:  draw_time(minute0, led_reps, 0);
+                break;
+            case 12:  draw_time(minute0, led_reps, 1);
+                break;
+            case 13:  draw_time(minute0, led_reps, 2);
                 break;
             
-            case 13:  draw_time(minute1, led_reps, 0);
+            case 14: draw_symbol(colon,0);
                 break;
-            case 14:  draw_time(minute1, led_reps, 1);
+
+            case 15:  draw_time(minute1, led_reps, 0);
                 break;
-            case 15:  draw_time(minute1, led_reps, 2);
+            case 16:  draw_time(minute1, led_reps, 1);
+                break;
+            case 17:  draw_time(minute1, led_reps, 2);
                 break;
                 
             default: draw_symbol(blank,1);
@@ -229,4 +258,3 @@ void loop()
   segment_index++;
   counter++;
 }
-
