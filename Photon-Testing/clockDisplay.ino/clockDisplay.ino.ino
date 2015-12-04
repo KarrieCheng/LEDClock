@@ -9,7 +9,7 @@ int Detector = 7;
 const int columns = 3;
 const int leds_per_column = 7;
 
-int segments = 128;
+int segments = 72;
 int segment_index = 0;
 long counter = 0; //for how many times a loop occurs in a revolution
 
@@ -26,14 +26,14 @@ int lpr_average = 1;
 /*TIME GLOBAL VARIABLES*/
 int hours = 26;
 int minutes = 37;
+int cloud_hours = 0;
+int cloud_minutes = 0;
 
 int hour0 = hours / 10;
 int hour1 = hours % 10;
 int minute0 = minutes / 10;
 int minute1 = minutes % 10;
 
-float ms_per_segment = 0;
-//this will matter when the arm is ready.
 
 /**** NUMBER SEGMENT ENCODINGS ****/
 const int one_bar [8] =           {1,1,1,1,1,1,1};
@@ -182,7 +182,6 @@ void draw_time(int digit, int* array [10], int column){
         }
   }
 
-
 void draw_symbol(int* symbol_location, int column){
   //delay(lps);
   int row = 0;
@@ -198,12 +197,13 @@ void draw_symbol(int* symbol_location, int column){
 }
 
 /**** TIME FUNCTION(S) ****/
-
 void update_time(){
     Particle.syncTime();
 
-    hours = Time.hour();
-    minutes = Time.minute();
+    cloud_hours = Time.hour();
+    cloud_minutes = Time.minute();
+    if(hours!=cloud_hours) hours=cloud_hours;
+    if(minutes!=cloud_minutes) minutes=cloud_minutes;
 
     hours = hours % 12;
     if (hours == 0)
@@ -242,27 +242,17 @@ void update_counters(){
     counter = 1;
     segment_index = 1;
 }
+
 /**** MAIN ****/
-void loop()
-
-{
-
-    update_time();
+void loop(){
     boolean val = digitalRead(Detector);
     if (interrupt) {
+        update_time();
         update_counters();
         interrupt = false;
-      }
-    if (segment_index == 6000) //64 was arbitrarily chosen
-    {
-        segment_index = 1;
     }
 
-    //
-
-
-
-  switch (segment_index) {
+    switch (segment_index) {
             case 1:  draw_time(hour0, led_reps, 0);
                 break;
             case 2:  draw_time(hour0, led_reps, 1);
@@ -307,8 +297,6 @@ void loop()
             default: draw_symbol(blank,1);
                 break;
         }
-    loop_index = (loop_index + 1) % lps;
-    if (loop_index == 0)
-        segment_index++;
-  counter++;
+    segment_index++;
+    counter++;
 }
