@@ -1,3 +1,6 @@
+/* Group Project
+Base Code from http://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
+ */
 #define MSRP_HISTORY  10
 #define DEGREES 72
 int arduino_offset = 0; //depends on the board we are using ; 2 for the Uno, 0 for the photon
@@ -220,14 +223,17 @@ void update_avg(){
 }
 
 void update_counters(){
+
     loop_end = millis();
     mspr[mspr_index] = loop_end - loop_start;
     loop_start = millis();
 
-
+    update_avg();
 
     mspr_index = (mspr_index + 1) % MSRP_HISTORY;
 }
+
+
 
 /**** MAIN ****/
 void loop(){
@@ -238,60 +244,56 @@ void loop(){
         interrupt = false;
     }
 
-    int segment_size = mspr_average/DEGREES;
-    if (segment_size == 0){
-        segment_size = 1;
-    }
-    int segment_index = ( millis() - loop_end) / segment_size;
 
-    //unsigned long now_check = millis() - loop_end;
+    unsigned long now_check = millis() - loop_end;
 
-    //unsigned long checking_case = (1 * (mspr_average/DEGREES)) + loop_end;
+    unsigned long checking_case = (1 * (mspr_average/DEGREES)) + loop_end;
+
+        if (now_check ==1* (mspr_average/DEGREES) + loop_end)  draw_time(hour0, led_reps, 0);
+
+        else if (now_check ==2* (mspr_average/DEGREES) + loop_end)  draw_time(hour0, led_reps, 1);
+
+        else if (now_check ==3* (mspr_average/DEGREES) + loop_end)  draw_time(hour0, led_reps, 2);
 
 
-    switch (segment_index) {
-            case 1:  draw_time(hour0, led_reps, 0);
-                break;
-            case 2:  draw_time(hour0, led_reps, 1);
-                break;
-            case 3:  draw_time(hour0, led_reps, 2);
-                break;
+        else if (now_check ==4* (mspr_average/DEGREES) + loop_end) draw_symbol(colon,0);
 
-            case 4: draw_symbol(colon,0);
-                break;
 
-            case 5:  draw_time(hour1, led_reps, 0);
-                break;
-            case 6:  draw_time(hour1, led_reps, 1);
-                break;
-            case 7:  draw_time(hour1, led_reps, 2);
-                break;
+        else if (now_check ==5* (mspr_average/DEGREES) + loop_end)  draw_time(hour1, led_reps, 0);
 
-            case 8: draw_symbol(colon,0);
-                break;
-            case 9: draw_symbol(colon,1);
-                break;
-            case 10: draw_symbol(colon,2);
-                break;
+        else if (now_check ==6* (mspr_average/DEGREES) + loop_end)  draw_time(hour1, led_reps, 1);
 
-            case 11:  draw_time(minute0, led_reps, 0);
-                break;
-            case 12:  draw_time(minute0, led_reps, 1);
-                break;
-            case 13:  draw_time(minute0, led_reps, 2);
-                break;
+        else if (now_check ==7* (mspr_average/DEGREES) + loop_end)  draw_time(hour1, led_reps, 2);
 
-            case 14: draw_symbol(colon,0);
-                break;
 
-            case 15:  draw_time(minute1, led_reps, 0);
-                break;
-            case 16:  draw_time(minute1, led_reps, 1);
-                break;
-            case 17:  draw_time(minute1, led_reps, 2);
-                break;
+        else if (now_check ==8* (mspr_average/DEGREES) + loop_end) draw_symbol(colon,0);
 
-            default: draw_symbol(blank,1);
-                break;
-        }
+        else if (now_check ==9* (mspr_average/DEGREES) + loop_end) draw_symbol(colon,1);
+
+        else if (now_check == 0* (mspr_average/DEGREES) + loop_end) draw_symbol(colon,2);
+
+
+        // else if (now_check == 11* (mspr_average/DEGREES) + loop_end)  draw_time(minute0, led_reps, 0);
+
+        // else if (now_check == 12* (mspr_average/DEGREES) + loop_end)  draw_time(minute0, led_reps, 1);
+
+        // else if (now_check == 13* (mspr_average/DEGREES) + loop_end)  draw_time(minute0, led_reps, 2);
+
+
+        // else if (now_check == 14* (mspr_average/DEGREES) + loop_end) draw_symbol(colon,0);
+
+
+        // else if (now_check == 15* (mspr_average/DEGREES) + loop_end)  draw_time(minute1, led_reps, 0);
+
+        // else if (now_check == 16* (mspr_average/DEGREES) + loop_end)  draw_time(minute1, led_reps, 1);
+
+        // else if (now_check == 17* (mspr_average/DEGREES) + loop_end)  draw_time(minute1, led_reps, 2);
+
+
+        // else
+        //     draw_symbol(blank,1);
+
+
+
+        else draw_symbol(colon,1);
 }
