@@ -2,9 +2,10 @@
 <html>
 <head>
 	<link rel="stylesheet" href="styles.css">
+    <link href='http://fonts.googleapis.com/css?family=Marck+Script|Montserrat|Libre+Baskerville|Source+Sans+Pro:200,300,400|Raleway:200,400,800,600,700' rel='stylesheet' type='text/css'>
 </head>
   <body bgcolor="#500000"> <!--I'd like to make this maroon #500000 but it's an eyesore. We'll see -->
-  <p style="font-family: 'georgia'"><span class="classhead">CSCE 462 Fall 2015 Final Project</span>
+  <span class="classhead">CSCE 462 Fall 2015 Final Project</span>
   <img src="http://engineering.tamu.edu/media/9432/csen-logo.png" alt="CS logo" align="right">
   <br>
   Jerego Orlino, Section 501<br>
@@ -15,6 +16,7 @@
   <form action="https://api.particle.io/v1/devices/37002b000347343138333038/tzone?access_token=e3eaafd7eae403adc867a166d5dd34b88935364b" method="POST">
   <!--form action="file:///C:/Users/Nick/Documents/GitHub/LEDClock/submittedtest.html" method="POST"-->
   <h1> LED Clock Web Test</h1>
+      <div>
     <p>Choose your time zone!</p>
 	<input type="radio" name="args" value="-8">GMT -08:00 (US Pacific Time)
 	<br>
@@ -28,13 +30,15 @@
 	<br>
 	<input type="radio" name="args" value="9">GMT +09:00 (Japan Standard Time)
     <br>
-    <br>
-    <input type="submit" value="Go!">
+    <br><div class="form">
+    <input type="submit" text-align="center" value="Go!"></div>
 	<br>
+          <br>
+          
 	Note: After submitting, press the back button in your browser to return here then refresh. I'll hopefully fix this later.
 	<br>
 	<br>
-	<br>
+	<br></div>
 	<img src="https://scontent.xx.fbcdn.net/hphotos-xat1/v/t1.0-9/10632695_591335527637869_1077138762765338020_n.jpg?oh=8aeff9e03a091851b7c3c26174d689df&oe=56DB5272" alt="Lol">
 	<br><img src="http://cdn.frankerfacez.com/40ebad0aab83040eb8732590454fa8d1.png" alt="Oh Banana">
   </form>
