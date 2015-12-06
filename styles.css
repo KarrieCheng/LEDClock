@@ -5,4 +5,22 @@ span.classhead{
 
 body{
 	color: white;
+    font-family: "Montserrat"
+}
+div{
+    margin: 0% 25% 0% 25%;
+    text-align: left
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Libre Baskerville";
+    font-weight: 700
+}
+
+.form{
+    text-align: center
 }
