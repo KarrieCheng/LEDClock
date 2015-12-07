@@ -7,8 +7,6 @@ Base Code from http://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
 int arduino_offset = 0; //depends on the board we are using ; 2 for the Uno, 0 for the photon
 int Detector = 7;
 
-const int columns = 3;
-const int leds_per_column = 7;
 
 /* RPM GLOBAL VARIABLES*/
 int loop_index = 0;
@@ -28,35 +26,39 @@ int hour1 = hours % 10;
 int minute0 = minutes / 10;
 int minute1 = minutes % 10;
 
-/**** NUMBER SEGMENT ENCODINGS ****/
-const int one_bar [8] =           {1,1,1,1,1,1,1};
-const int one_blank [8] =         {0,0,0,0,0,0,0};
-const int one_mid [8] =           {0,0,0,1,0,0,0};
-const int one_top[8] =            {1,0,0,0,0,0,0};
-const int two_top [8] =           {1,1,1,1,0,0,0};
-const int two_exclam [8] =        {1,1,1,1,0,0,1};
-const int two_inv_excl [8] =      {1,0,0,0,1,1,1};
-const int two_colon [8] =     {0,0,1,0,0,1,0}; //colon
-const int two_spread [8] =        {1,0,0,0,0,0,1};
-const int two_bot_spread [8] =    {0,0,0,0,1,0,1};
-const int two_top_spread [8] =    {1,0,0,1,0,0,0};
-const int three_spread [8] =      {1,0,0,1,0,0,1};
-const int three_spread_inv [8] =  {1,0,0,1,0,0,1};
+const int columns = 3;
+const int leds_per_column = 5;
+
 
 /**** NUMBER SEGMENT ENCODINGS ****/
-int zero  [21];
-int one   [21];
-int two   [21];
-int three [21];
-int four  [21];
-int five  [21];
-int six   [21];
-int seven [21];
-int eight [21];
-int nine  [21];
+const int one_bar [5] =           {1,1,1,1,1};
+const int one_blank [5] =         {0,0,0,0,0};
+const int one_mid [5] =           {0,0,1,0,0};
+const int one_top[5] =            {1,0,0,0,0};
+const int two_top [5] =           {1,1,1,0,0};
+const int two_exclam [5] =        {1,1,1,0,1};
+const int two_inv_excl [5] =      {1,0,0,1,1};
+const int two_colon [5] =         {0,1,0,0,0}; //colon
+const int two_spread [5] =        {1,0,0,0,1};
+const int two_bot_spread [5] =    {0,0,0,1,1};
+const int two_top_spread [5] =    {1,0,1,0,0};
+const int three_spread [5] =      {1,0,1,0,1};
+const int three_spread_inv [5] =  {1,0,1,0,1};
 
-int blank  [21];
-int colon  [21];
+/**** NUMBER SEGMENT ENCODINGS ****/
+int zero  [15];
+int one   [15];
+int two   [15];
+int three [15];
+int four  [15];
+int five  [15];
+int six   [15];
+int seven [15];
+int eight [15];
+int nine  [15];
+
+int blank  [15];
+int colon  [15];
 
 int* led_reps [10] = {zero, one, two, three, four, five, six, seven, eight, nine};
 
@@ -70,8 +72,8 @@ void setup() {
   pinMode(2 + arduino_offset, OUTPUT);
   pinMode(3 + arduino_offset, OUTPUT);
   pinMode(4 + arduino_offset, OUTPUT);
-  pinMode(5 + arduino_offset, OUTPUT);
-  pinMode(6 + arduino_offset, OUTPUT);
+//   pinMode(5 + arduino_offset, OUTPUT);
+//   pinMode(6 + arduino_offset, OUTPUT);
   pinMode(Detector, INPUT);
   
   digitalWrite(0,HIGH);
@@ -79,8 +81,8 @@ void setup() {
   digitalWrite(2,HIGH);
   digitalWrite(3,HIGH);
   digitalWrite(4,HIGH);
-  digitalWrite(5,HIGH);
-  digitalWrite(6,HIGH);
+//   digitalWrite(5,HIGH);
+//   digitalWrite(6,HIGH);
 
   Time.zone(-6);  
   
@@ -157,10 +159,10 @@ void draw_time(int digit, int* array [10], int column){
 
   int row = 0;
   int index = 0;
-  for (row = 0; row < 7; row++)
+  for (row = 0; row < leds_per_column; row++)
         {
           index = (column*leds_per_column) + row;
-          int pin_index = 6 - (row + arduino_offset);
+          int pin_index = 4 - (row + arduino_offset);
           (digit_map[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
         }
 }
@@ -171,10 +173,10 @@ void draw_symbol(int* symbol_location, int column){
   int row = 0;
   int index = 0;
   
-  for (row = 0; row < 7; row++)
+  for (row = 0; row < leds_per_column; row++)
   {
     index = (column*leds_per_column) + row;
-    int pin_index = 6 - (row + arduino_offset);
+    int pin_index = 4 - (row + arduino_offset);
     (symbol_location[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
   }
   
