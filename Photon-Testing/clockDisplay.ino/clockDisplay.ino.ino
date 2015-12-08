@@ -1,31 +1,60 @@
-/* CSCE 462 Group Project
-Base Code from http://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
- */
-#define LPR_HISTORY  5
-#define DEGREES 64
+//CSCE 462 Fall 2015 Group Project
+//Karrie Cheng, Nicholas Lonsway, Jerego Orlino
+// Modified from Spark Interval Timer demo
+// This code utilizes the SparkIntervalTimer library to creat timed interrupts to
+// - flash the time on a flying banner.
 
-int arduino_offset = 0; //depends on the board we are using ; 2 for the Uno, 0 for the photon
-int Detector = 7;
+#include <string.h>
+#include "SparkIntervalTimer.h"
+ 
+#define MSRP_HISTORY  10
+#define SEG_PER_REV 72
+
+#define COLON  10
+#define BLANK 11
+
+unsigned long mspr[MSRP_HISTORY]; //keeps a history of the few milliseconds per rotation
+int mspr_index = 0; //
+double mspr_average = 1;
+
+unsigned long loop_start = 0;
+unsigned long loop_end = 0;
+unsigned long watch = 0;
+
+volatile bool interrupt = false;
+intPeriod ms_intervals = 5000;
+
+const uint8_t ledPin = 0;		// LED for first Interval Timer
+const uint8_t ledPin2 = 1;		// LED for second Interval Timer
+const uint8_t ledPin3 = 2;		// LED for third Interval Timer
+const uint8_t ledPin4 = 3;
+const uint8_t ledPin5 = 4;
+
+IntervalTimer myTimer;		// 3 for the Core
+IntervalTimer myTimer2;
+IntervalTimer myTimer3;
+IntervalTimer myTimer4;
+IntervalTimer myTimer5;
+
+void blinkLED(void);
+void blinkLED2(void);
+void blinkLED3(void);
+void blinkLED4(void);
+void blinkLED5(void);
 
 
-/* RPM GLOBAL VARIABLES*/
-int loop_index = 0;
-int lps = 5; // loops per segment
-int lpr[LPR_HISTORY]; //loops per rotation
-int lpr_index = 0;
-int lpr_average = 1;
-int segment_index = 0;
-long counter = 0; //for how many times a loop occurs in a revolution
 
 /*TIME GLOBAL VARIABLES*/
-int hours = 26; 
-int minutes = 37;
+int hours = 37;
+int minutes = 26;
 
 int hour0 = hours / 10;
 int hour1 = hours % 10;
 int minute0 = minutes / 10;
 int minute1 = minutes % 10;
 
+// int digit_map [1080];
+int digit_map [480];
 const int columns = 3;
 const int leds_per_column = 5;
 
@@ -38,7 +67,7 @@ const int one_top[5] =            {1,0,0,0,0};
 const int two_top [5] =           {1,1,1,0,0};
 const int two_exclam [5] =        {1,1,1,0,1};
 const int two_inv_excl [5] =      {1,0,0,1,1};
-const int two_colon [5] =         {0,1,0,0,0}; //colon
+const int two_colon [5] =           {0,1,0,0,0}; //colon
 const int two_spread [5] =        {1,0,0,0,1};
 const int two_bot_spread [5] =    {0,0,0,1,1};
 const int two_top_spread [5] =    {1,0,1,0,0};
@@ -60,129 +89,235 @@ int nine  [15];
 int blank  [15];
 int colon  [15];
 
-int* led_reps [10] = {zero, one, two, three, four, five, six, seven, eight, nine};
+int* led_reps [12] = {zero, one, two, three, four, five, six, seven, eight, nine, colon, blank};
 
+volatile unsigned long blinkCount = 0; // use volatile for shared variables
 
-/**** SETUP ****/
-void setup() {
+void setup(void) {
     
-  // set the digital pin as output:
-  pinMode(0 + arduino_offset, OUTPUT);
-  pinMode(1 + arduino_offset, OUTPUT);
-  pinMode(2 + arduino_offset, OUTPUT);
-  pinMode(3 + arduino_offset, OUTPUT);
-  pinMode(4 + arduino_offset, OUTPUT);
-//   pinMode(5 + arduino_offset, OUTPUT);
-//   pinMode(6 + arduino_offset, OUTPUT);
-  pinMode(Detector, INPUT);
-  
-  digitalWrite(0,HIGH);
-  digitalWrite(1,HIGH);
-  digitalWrite(2,HIGH);
-  digitalWrite(3,HIGH);
-  digitalWrite(4,HIGH);
-//   digitalWrite(5,HIGH);
-//   digitalWrite(6,HIGH);
+    Time.zone(-6);  
+    
+    int Detector = 7;
+    pinMode(Detector, INPUT);
+    pinMode(ledPin, OUTPUT);
+    pinMode(ledPin2, OUTPUT);
+    pinMode(ledPin3, OUTPUT);
+    pinMode(ledPin4, OUTPUT);
+    pinMode(ledPin5, OUTPUT);
 
-  Time.zone(-6);  
-  
-  /* BIT MAP ASSIGNMENTS */
-  int row_counter = 0;
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++)
-  {
+    attachInterrupt(Detector, ISR, FALLING);
+    myTimer.begin(blinkLED, 1000, uSec);
+    myTimer2.begin(blinkLED2, 1000, uSec);
+    myTimer3.begin(blinkLED3, 1000, uSec);
+    myTimer4.begin(blinkLED4, 1000, uSec);
+    myTimer5.begin(blinkLED5, 1000, uSec);
+
+    int row_counter = 0;
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++)
+    {
     zero[row_counter + (0 * leds_per_column)] = one_bar[row_counter];
     zero[row_counter + (1 * leds_per_column)] = two_spread[row_counter];
     zero[row_counter + (2 * leds_per_column)] = one_bar[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
     one[row_counter + (0 * leds_per_column)] = one_blank[row_counter];
     one[row_counter + (1 * leds_per_column)] = one_bar[row_counter];
     one[row_counter + (2 * leds_per_column)] = one_blank[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       two[row_counter + (0 * leds_per_column)] = two_inv_excl[row_counter];
       two[row_counter + (1 * leds_per_column)] = three_spread_inv[row_counter];
       two[row_counter + (2 * leds_per_column)] = two_exclam[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       three[row_counter + (0 * leds_per_column)] = three_spread[row_counter];
       three[row_counter + (1 * leds_per_column)] = three_spread[row_counter];
       three[row_counter + (2 * leds_per_column)] = one_bar[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       four[row_counter + (0 * leds_per_column)] = two_top[row_counter];
       four[row_counter + (1 * leds_per_column)] = one_mid[row_counter];
       four[row_counter + (2 * leds_per_column)] = one_bar[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       five[row_counter + (0 * leds_per_column)] = two_exclam[row_counter];
       five[row_counter + (1 * leds_per_column)] = three_spread_inv[row_counter];
       five[row_counter + (2 * leds_per_column)] = two_inv_excl[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       six[row_counter + (0 * leds_per_column)] = one_bar[row_counter];
       six[row_counter + (1 * leds_per_column)] = three_spread_inv[row_counter];
       six[row_counter + (2 * leds_per_column)] = two_inv_excl[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       seven[row_counter + (0 * leds_per_column)] = one_top[row_counter];
       seven[row_counter + (1 * leds_per_column)] = one_top[row_counter];
       seven[row_counter + (2 * leds_per_column)] = one_bar[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       eight[row_counter + (0 * leds_per_column)] = one_bar[row_counter];
       eight[row_counter + (1 * leds_per_column)] = three_spread[row_counter];
       eight[row_counter + (2 * leds_per_column)] = one_bar[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       nine[row_counter + (0 * leds_per_column)] = two_top[row_counter];
       nine[row_counter + (1 * leds_per_column)] = two_top_spread[row_counter];
       nine[row_counter + (2 * leds_per_column)] = one_bar[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    
+    
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       blank[row_counter + (0 * leds_per_column)] = one_blank[row_counter];
       blank[row_counter + (1 * leds_per_column)] = one_blank[row_counter];
       blank[row_counter + (2 * leds_per_column)] = one_blank[row_counter];
-  }
-  for (row_counter = 0; row_counter < leds_per_column; row_counter++){
+    }
+    for (row_counter = 0; row_counter < leds_per_column; row_counter++){
       colon[row_counter + (0 * leds_per_column)] = one_blank[row_counter];
       colon[row_counter + (1 * leds_per_column)] = two_colon[row_counter];
       colon[row_counter + (2 * leds_per_column)] = one_blank[row_counter];
-  }
+    }
+    
+    update_time();
+    
+    delay(10000);
+
 }
 
 
-/**** DRAW FUNCTIONS ****/
-void draw_time(int digit, int* array [10], int column){
-  int* digit_map;
-  digit_map = array[digit];
+void ISR() {
+    interrupt = true;
+}
 
-  int row = 0;
-  int index = 0;
-  for (row = 0; row < leds_per_column; row++)
-        {
-          index = (column*leds_per_column) + row;
-          int pin_index = 4 - (row + arduino_offset);
-          (digit_map[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
-        }
+void create_digit_map(){
+    int* temp_digit_array;
+    
+    int row = 0;
+    int column_counter = 0;
+    int temp_digit_array_index = 0;
+    int index = 0;
+    
+    temp_digit_array =  blank;
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(0)];
+    } 
+    column_counter+=3;
+    
+   
+    temp_digit_array =  blank;
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(0)];
+    } 
+    column_counter+=3;
+    
+  
+    temp_digit_array =  blank;
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(0)];
+    } 
+    column_counter+=3;
+    
+   temp_digit_array = led_reps[hour0];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = blank;
+    for (temp_digit_array_index = 0; temp_digit_array_index < leds_per_column; temp_digit_array_index++){
+      index = (column_counter*leds_per_column) + temp_digit_array_index;
+         digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    } 
+    column_counter++;
+    
+    temp_digit_array = led_reps[hour1];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+       index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = led_reps[COLON];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (columns*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    } 
+    column_counter+=3;
+    
+    temp_digit_array = led_reps[minute0];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    temp_digit_array = blank;
+    for (temp_digit_array_index = 0; temp_digit_array_index < leds_per_column; temp_digit_array_index++){
+      index = (column_counter*leds_per_column) + temp_digit_array_index;
+         digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    } 
+    column_counter++;
+    
+    temp_digit_array = led_reps[minute1];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+       index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = blank;
+    for (temp_digit_array_index = 0; temp_digit_array_index < (SEG_PER_REV - column_counter) * leds_per_column;temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[0];
+    } 
+}
+
+void blinkLED(void) {
+    // digit_map[blinkCount * 5 ] = 1;
+    blinkCount = (blinkCount + 1)% SEG_PER_REV;		// increase when LED turns on
+    (digit_map[blinkCount * 5 + 4] == 1)? digitalWrite(ledPin, HIGH): digitalWrite(ledPin, LOW);
+}
+// Callback for Timer 2
+void blinkLED2(void) {
+    //digit_map[blinkCount * 5 + 1] =1;
+    (digit_map[blinkCount * 5 + 3] == 1)? digitalWrite(ledPin2, HIGH): digitalWrite(ledPin2, LOW);
+}
+// Callback for Timer 3
+void blinkLED3(void) {
+     (digit_map[blinkCount * 5 + 2] == 1)? digitalWrite(ledPin3, HIGH): digitalWrite(ledPin3, LOW);
+}
+// Callback for Timer 4
+void blinkLED4(void) {
+    (digit_map[blinkCount * 5 + 1] == 1)? digitalWrite(ledPin4, HIGH): digitalWrite(ledPin4, LOW);
+}
+// Callback for Timer 5
+void blinkLED5(void) {
+    (digit_map[blinkCount * 5 + 0] == 1)? digitalWrite(ledPin5, HIGH): digitalWrite(ledPin5, LOW);
 }
 
 
-void draw_symbol(int* symbol_location, int column){
-  
-  int row = 0;
-  int index = 0;
-  
-  for (row = 0; row < leds_per_column; row++)
-  {
-    index = (column*leds_per_column) + row;
-    int pin_index = 4 - (row + arduino_offset);
-    (symbol_location[index] == 1)? digitalWrite(pin_index, HIGH): digitalWrite(pin_index, LOW);
-  }
-  
+void update_counters(){
+    loop_end = millis();
+    mspr[mspr_index] = loop_end - loop_start;
+    loop_start = millis();
+
+    mspr_index = (mspr_index + 1) % MSRP_HISTORY;
 }
 
-/**** TIME FUNCTION(S) ****/
+
+void update_avg(){
+    int array_counter = 0;
+    unsigned long sum = 0;
+    for (array_counter = 0; array_counter < MSRP_HISTORY; array_counter++){
+        sum += mspr[array_counter];
+    }
+    mspr_average = sum/MSRP_HISTORY;
+    ms_intervals = (mspr_average/SEG_PER_REV)*1000;
+}
+
 void update_time(){
   Particle.syncTime();
   
@@ -195,84 +330,21 @@ void update_time(){
   hour1 = hours % 10;
   minute0 = minutes / 10;
   minute1 = minutes % 10;
+  create_digit_map();
 }
 
-/**** RPM FUNCTION(S) ****/
-void update_avg(){
-    int array_counter = 0;
-    int sum = 0;
-    for (array_counter = 0; array_counter < LPR_HISTORY; array_counter++)
-        sum += lpr[array_counter];
-    lpr_average = sum/LPR_HISTORY;
-}
 
-void update_lps(){
-    lps = 1.5 * (lpr_average/DEGREES);
-    if (lps==0)
-        lps = 1;
-}
-
-/**** MAIN ****/
-void loop(){ 
-    update_time();
-    boolean val = digitalRead(Detector);
-    if (!val) {
-        lpr[lpr_index] = segment_index;
-        lpr_index = (lpr_index + 1) % LPR_HISTORY;
-        
+void loop(void) {
+   if (interrupt) {
+        update_time();
+        update_counters();
         update_avg();
-        update_lps();
-
-        counter = 1;
-        segment_index = 1;  
-    } //this is for when we decide how fast the clock goes    
-  switch (segment_index) {
-            case 1:  draw_time(hour0, led_reps, 0);
-                break;
-            case 2:  draw_time(hour0, led_reps, 1);
-                break;
-            case 3:  draw_time(hour0, led_reps, 2);
-                break;
-
-            case 4: draw_symbol(colon,0);
-                break;
-                
-            case 5:  draw_time(hour1, led_reps, 0);
-                break;
-            case 6:  draw_time(hour1, led_reps, 1);
-                break;
-            case 7:  draw_time(hour1, led_reps, 2);
-                break;
-
-            case 8: draw_symbol(colon,0);
-                break;
-            case 9: draw_symbol(colon,1);
-                break;
-            case 10: draw_symbol(colon,2);
-                break;
-
-            case 11:  draw_time(minute0, led_reps, 0);
-                break;
-            case 12:  draw_time(minute0, led_reps, 1);
-                break;
-            case 13:  draw_time(minute0, led_reps, 2);
-                break;
-            
-            case 14: draw_symbol(colon,0);
-                break;
-
-            case 15:  draw_time(minute1, led_reps, 0);
-                break;
-            case 16:  draw_time(minute1, led_reps, 1);
-                break;
-            case 17:  draw_time(minute1, led_reps, 2);
-                break;
-                
-            default: draw_symbol(blank,1);
-                break;
-        }
-    loop_index = (loop_index + 1) % lps;
-    if (loop_index == 0)
-        segment_index++;
-    counter++;
+        update_time();
+        myTimer.resetPeriod_SIT(ms_intervals, uSec);
+        myTimer2.resetPeriod_SIT(ms_intervals, uSec);
+        myTimer3.resetPeriod_SIT(ms_intervals, uSec);
+        myTimer4.resetPeriod_SIT(ms_intervals, uSec);
+        myTimer5.resetPeriod_SIT(ms_intervals, uSec);
+        interrupt = false;
+    }
 }
