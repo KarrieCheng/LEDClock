@@ -1,7 +1,7 @@
 //CSCE 462 Fall 2015 Group Project
 //Karrie Cheng, Nicholas Lonsway, Jerego Orlino
 // Modified from Spark Interval Timer demo
-// This code utilizes the SparkIntervalTimer library to creat timed interrupts to
+// This code utilizes the SparkIntervalTimer library to creat timed interrupts to -
 // - flash the time on a flying banner.
 
 #include <string.h>
@@ -47,6 +47,7 @@ void blinkLED5(void);
 /*TIME GLOBAL VARIABLES*/
 int hours = 37;
 int minutes = 26;
+int tzone = -6; //Default to CST
 
 int hour0 = hours / 10;
 int hour1 = hours % 10;
@@ -67,7 +68,7 @@ const int one_top[5] =            {1,0,0,0,0};
 const int two_top [5] =           {1,1,1,0,0};
 const int two_exclam [5] =        {1,1,1,0,1};
 const int two_inv_excl [5] =      {1,0,0,1,1};
-const int two_colon [5] =           {0,1,0,0,0}; //colon
+const int two_colon [5] =         {0,1,0,1,0}; //colon
 const int two_spread [5] =        {1,0,0,0,1};
 const int two_bot_spread [5] =    {0,0,0,1,1};
 const int two_top_spread [5] =    {1,0,1,0,0};
@@ -85,17 +86,18 @@ int six   [15];
 int seven [15];
 int eight [15];
 int nine  [15];
-
-int blank  [15];
 int colon  [15];
+int blank  [15];
 
 int* led_reps [12] = {zero, one, two, three, four, five, six, seven, eight, nine, colon, blank};
 
 volatile unsigned long blinkCount = 0; // use volatile for shared variables
 
+/**** INITIAL RUNNING FUNCTION****/
 void setup(void) {
     
-    Time.zone(-6);  
+    Particle.function("tzone",changeZone);
+    Time.zone(tzone);
     
     int Detector = 7;
     pinMode(Detector, INPUT);
@@ -180,8 +182,13 @@ void setup(void) {
     
     update_time();
     
-    delay(10000);
+    delay(100);
 
+}
+
+int changeZone(String command){
+    tzone = atoi(command);
+    return 0;
 }
 
 
@@ -197,37 +204,24 @@ void create_digit_map(){
     int temp_digit_array_index = 0;
     int index = 0;
     
-    temp_digit_array =  blank;
-    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
-        index = (column_counter*leds_per_column) + temp_digit_array_index;
-        digit_map[index] = temp_digit_array[(0)];
-    } 
-    column_counter+=3;
     
-   
-    temp_digit_array =  blank;
-    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+    temp_digit_array = led_reps[BLANK];
+    for (temp_digit_array_index = 0; temp_digit_array_index < (SEG_PER_REV/8) * leds_per_column; temp_digit_array_index++){
         index = (column_counter*leds_per_column) + temp_digit_array_index;
-        digit_map[index] = temp_digit_array[(0)];
+        digit_map[index] = temp_digit_array[0];
     } 
-    column_counter+=3;
+    column_counter+=(SEG_PER_REV/4);
     
-  
-    temp_digit_array =  blank;
-    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
-        index = (column_counter*leds_per_column) + temp_digit_array_index;
-        digit_map[index] = temp_digit_array[(0)];
-    } 
-    column_counter+=3;
     
-   temp_digit_array = led_reps[hour0];
+    
+    temp_digit_array = led_reps[hour0];
     for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
         index = (column_counter*leds_per_column) + temp_digit_array_index;
         digit_map[index] = temp_digit_array[(temp_digit_array_index)];
     }
     column_counter+=3;
     
-    temp_digit_array = blank;
+    temp_digit_array = led_reps[BLANK];
     for (temp_digit_array_index = 0; temp_digit_array_index < leds_per_column; temp_digit_array_index++){
       index = (column_counter*leds_per_column) + temp_digit_array_index;
          digit_map[index] = temp_digit_array[(temp_digit_array_index)];
@@ -243,9 +237,9 @@ void create_digit_map(){
     
     temp_digit_array = led_reps[COLON];
     for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
-        index = (columns*leds_per_column) + temp_digit_array_index;
+       index = (column_counter*leds_per_column) + temp_digit_array_index;
         digit_map[index] = temp_digit_array[(temp_digit_array_index)];
-    } 
+    }
     column_counter+=3;
     
     temp_digit_array = led_reps[minute0];
@@ -254,7 +248,8 @@ void create_digit_map(){
         digit_map[index] = temp_digit_array[(temp_digit_array_index)];
     }
     column_counter+=3;
-    temp_digit_array = blank;
+    
+    temp_digit_array = led_reps[BLANK];
     for (temp_digit_array_index = 0; temp_digit_array_index < leds_per_column; temp_digit_array_index++){
       index = (column_counter*leds_per_column) + temp_digit_array_index;
          digit_map[index] = temp_digit_array[(temp_digit_array_index)];
@@ -268,13 +263,83 @@ void create_digit_map(){
     }
     column_counter+=3;
     
-    temp_digit_array = blank;
+    
+    
+    
+    
+    
+    temp_digit_array = led_reps[BLANK];
+    for (temp_digit_array_index = 0; temp_digit_array_index < (SEG_PER_REV/4) * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[0];
+    } 
+    column_counter+=(SEG_PER_REV/4);
+
+    
+    
+    
+    
+    
+    
+   temp_digit_array = led_reps[hour0];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = led_reps[BLANK];
+    for (temp_digit_array_index = 0; temp_digit_array_index < leds_per_column; temp_digit_array_index++){
+      index = (column_counter*leds_per_column) + temp_digit_array_index;
+         digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    } 
+    column_counter++;
+    
+    temp_digit_array = led_reps[hour1];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+       index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = led_reps[COLON];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+       index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = led_reps[minute0];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+        index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = led_reps[BLANK];
+    for (temp_digit_array_index = 0; temp_digit_array_index < leds_per_column; temp_digit_array_index++){
+      index = (column_counter*leds_per_column) + temp_digit_array_index;
+         digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    } 
+    column_counter++;
+    
+    temp_digit_array = led_reps[minute1];
+    for (temp_digit_array_index = 0; temp_digit_array_index < columns * leds_per_column; temp_digit_array_index++){
+       index = (column_counter*leds_per_column) + temp_digit_array_index;
+        digit_map[index] = temp_digit_array[(temp_digit_array_index)];
+    }
+    column_counter+=3;
+    
+    temp_digit_array = led_reps[BLANK];
     for (temp_digit_array_index = 0; temp_digit_array_index < (SEG_PER_REV - column_counter) * leds_per_column;temp_digit_array_index++){
         index = (column_counter*leds_per_column) + temp_digit_array_index;
         digit_map[index] = temp_digit_array[0];
     } 
 }
 
+
+
+/****LED WRITE FUNCTIONS****/
 void blinkLED(void) {
     // digit_map[blinkCount * 5 ] = 1;
     blinkCount = (blinkCount + 1)% SEG_PER_REV;		// increase when LED turns on
@@ -299,6 +364,8 @@ void blinkLED5(void) {
 }
 
 
+/**** RPM FUNCTIONS****/
+
 void update_counters(){
     loop_end = millis();
     mspr[mspr_index] = loop_end - loop_start;
@@ -319,12 +386,16 @@ void update_avg(){
 }
 
 void update_time(){
+  Time.zone(tzone);
   Particle.syncTime();
   
   hours = Time.hour();
   minutes = Time.minute();
   
   hours = hours % 12;
+  if(hours == 0){
+      hours = 12;
+  }
   
   hour0 = hours / 10;
   hour1 = hours % 10;
@@ -334,8 +405,13 @@ void update_time(){
 }
 
 
+/****MAIN FUNCTION****/
 void loop(void) {
+    
    if (interrupt) {
+         
+
+        interrupt = false;
         update_time();
         update_counters();
         update_avg();
@@ -345,6 +421,6 @@ void loop(void) {
         myTimer3.resetPeriod_SIT(ms_intervals, uSec);
         myTimer4.resetPeriod_SIT(ms_intervals, uSec);
         myTimer5.resetPeriod_SIT(ms_intervals, uSec);
-        interrupt = false;
+        
     }
 }
